@@ -25,6 +25,9 @@ const int MAX_PARTICLES = 1000;
 class Global {
 public:
 	int xres, yres;
+        int mouse_x, mouse_y;
+        int pressed;
+        int frame_count = 0;
 	Global();
 } g;
 
@@ -41,11 +44,11 @@ class Box {
     	float dir;
     	float pos[2];
     	Box() {
-       		h = 20.0f;
+       		h = 15.0f;
 		w = 80.0f;
        		dir = 25.0f;
-       		pos[0] = x = g.xres / 4.0;
-       		pos[1] = y = g.yres / 1.5f;
+       		pos[0] = x = g.xres / 6.0;
+       		pos[1] = y = g.yres / 1.2f;
 		vel[0] = vel[1] = 0.0;
 		make_boxes(h, w, x, y);
     	}
@@ -66,10 +69,10 @@ void make_boxes(int h, int w, int x, int y)
 	for (int i = 0; i < 5; i++) {
 	    boxes[i].h = h;
 	    boxes[i].w = w;
-	    boxes[i].x = x;
-	    boxes[i].y = y;
-	    x++;
-	    y--;
+	    boxes[i].pos[0] = x;
+	    boxes[i].pos[1] = y;
+	    x+=120;
+	    y-=80;
 	}
 }
 
@@ -95,7 +98,6 @@ public:
 void init_opengl(void);
 void physics(void);
 void render(void);
-
 
 
 //=====================================
@@ -124,8 +126,11 @@ int main()
 
 Global::Global()
 {
-	xres = 400;
-	yres = 200;
+	xres = 800;
+	yres = 600;
+        pressed = 0;
+        mouse_x = 0;
+        mouse_y = 0;
 }
 
 X11_wrapper::~X11_wrapper()
@@ -220,12 +225,14 @@ void make_particle(int p1, int p2)
 {
     if (n >= MAX_PARTICLES)
 	return;
+
     particles[n].w = 4.0;
     particles[n].pos[0] = p1;
     particles[n].pos[1] = p2;
     particles[n].vel[0] = particles[n].vel[1] = 0;
     n++;
 }
+
 
 void X11_wrapper::check_mouse(XEvent *e)
 {
@@ -244,11 +251,12 @@ void X11_wrapper::check_mouse(XEvent *e)
 		return;
 	}
 	if (e->type == ButtonPress) {
-		if (e->xbutton.button==1) {
+		while (e->xbutton.button==1) {
 			//Left button was pressed.
-			int y = g.yres - e->xbutton.y;
-			int x = e->xbutton.x;
-			make_particle(x, y);
+			g.mouse_y = g.yres - e->xbutton.y;
+			g.mouse_x = e->xbutton.x;
+                        g.pressed = 1;
+                        make_particle(g.mouse_x, g.mouse_y);
 			return;
 		}
 		if (e->xbutton.button==3) {
@@ -319,13 +327,37 @@ void physics()
 		particles[i].pos[0] += particles[i].vel[0];
 		particles[i].pos[1] += particles[i].vel[1];
 
-		if ((particles[i].pos[1] - particles[i].w) < (box.pos[1] + box.h) &&
-	    	particles[i].pos[1] > (box.pos[1] - box.h) &&
-	    	particles[i].pos[0] > (box.pos[0] - box.w) &&
-	    	particles[i].pos[0] < (box.pos[0] + box.w)) {
-	    		particles[i].vel[1] = 0.0;
-			particles[i].vel[0] += 0.01;
-		}
+                for (int j = 0; j < 5; j++) {
+		        if ((particles[i].pos[1] - particles[i].w) < (boxes[j].pos[1] + boxes[j].h) &&
+	    	        particles[i].pos[1] > (boxes[j].pos[1] - boxes[j].h) &&
+	    	        particles[i].pos[0] > (boxes[j].pos[0] - boxes[j].w) &&
+	    	        particles[i].pos[0] < (boxes[j].pos[0] + boxes[j].w)) {
+	    		        particles[i].vel[1] = 0.0;
+			        particles[i].vel[0] += 0.005;
+                                if (particles[i].vel[0] > 2)
+                                        particles[i].vel[0] = 2;
+		        }
+                }
+                for (int k = 0; k < n; k++) {
+                        if (k != i) {
+		        if ((particles[i].pos[1] - particles[i].w) < (particles[k].pos[1] + particles[k].h) &&
+	    	        particles[i].pos[1] > (particles[k].pos[1] - particles[k].h) &&
+	    	        particles[i].pos[0] > (particles[k].pos[0] - particles[k].w) &&
+	    	        particles[i].pos[0] < (particles[k].pos[0] + particles[k].w)) {
+			        particles[i].vel[0] += 0.001;
+                                if (particles[i].vel[0] > 2)
+                                        particles[i].vel[0] = 2;
+		        }
+
+		        else if ((particles[i].pos[1] - particles[i].w) < (particles[k].pos[1] + particles[k].h) &&
+	    	        particles[i].pos[1] > (particles[k].pos[1] - particles[k].h) &&
+	    	        particles[i].pos[0] > (particles[k].pos[0] - particles[k].w) &&
+	    	        particles[i].pos[0] < (particles[k].pos[0] + particles[k].w)) {
+			        particles[i].vel[0] -= 0.01;
+                        
+                        }
+                        }
+                }
 
 		if (particles[i].pos[1] < 0.0) {
 		    particles[i] = particles[n-1];
@@ -337,6 +369,14 @@ void physics()
 
 void render()
 {
+        if (g.frame_count >= 10 || g.pressed)
+                make_particle(g.mouse_x, g.mouse_y);
+        else {
+                g.frame_count++;
+                if (g.frame_count > 10)
+                        g.frame_count = 0;
+        }
+
 	glClear(GL_COLOR_BUFFER_BIT);
 	//Draw box.
 	glPushMatrix();
