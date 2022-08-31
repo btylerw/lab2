@@ -345,8 +345,8 @@ void physics()
 	    	        particles[i].pos[0] > (particles[k].pos[0] - particles[k].w) &&
 	    	        particles[i].pos[0] < (particles[k].pos[0] + particles[k].w)) {
 			        particles[i].vel[0] += 0.001;
-                                if (particles[i].vel[0] > 2)
-                                        particles[i].vel[0] = 2;
+                                if (particles[i].vel[0] > 0.1)
+                                        particles[i].vel[0] = 0.1;
 		        }
 
 		        else if ((particles[i].pos[1] - particles[i].w) < (particles[k].pos[1] + particles[k].h) &&
