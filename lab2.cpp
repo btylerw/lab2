@@ -28,6 +28,7 @@ public:
         int mouse_x, mouse_y;
         int pressed;
         int frame_count = 0;
+	int on_box = 0;
 	Global();
 } g;
 
@@ -333,10 +334,13 @@ void physics()
 	    	        particles[i].pos[0] > (boxes[j].pos[0] - boxes[j].w) &&
 	    	        particles[i].pos[0] < (boxes[j].pos[0] + boxes[j].w)) {
 	    		        particles[i].vel[1] = 0.0;
-			        particles[i].vel[0] += 0.005;
+			        particles[i].vel[0] += 0.05;
                                 if (particles[i].vel[0] > 2)
                                         particles[i].vel[0] = 2;
+				g.on_box = 1;
 		        }
+			else
+			    g.on_box = 0;
                 }
                 for (int k = 0; k < n; k++) {
                         if (k != i) {
@@ -344,16 +348,17 @@ void physics()
 	    	        particles[i].pos[1] > (particles[k].pos[1] - particles[k].h) &&
 	    	        particles[i].pos[0] > (particles[k].pos[0] - particles[k].w) &&
 	    	        particles[i].pos[0] < (particles[k].pos[0] + particles[k].w)) {
-			        particles[i].vel[0] += 0.001;
-                                if (particles[i].vel[0] > 0.1)
-                                        particles[i].vel[0] = 0.1;
+			        particles[i].vel[0] += 0.05;
+                                if (particles[i].vel[0] > .75)
+                                        particles[i].vel[0] = .75;
 		        }
 
-		        else if ((particles[i].pos[1] - particles[i].w) < (particles[k].pos[1] + particles[k].h) &&
+		        if ((particles[i].pos[1] + particles[i].w) < (particles[k].pos[1] + particles[k].h) &&
 	    	        particles[i].pos[1] > (particles[k].pos[1] - particles[k].h) &&
 	    	        particles[i].pos[0] > (particles[k].pos[0] - particles[k].w) &&
 	    	        particles[i].pos[0] < (particles[k].pos[0] + particles[k].w)) {
-			        particles[i].vel[0] -= 0.01;
+			    	if (!g.on_box)
+					particles[i].vel[0] = -particles[i].vel[0];
                         
                         }
                         }
@@ -369,13 +374,9 @@ void physics()
 
 void render()
 {
-        if (g.frame_count >= 10 || g.pressed)
+        if (g.frame_count >= 10 && g.pressed) {
                 make_particle(g.mouse_x, g.mouse_y);
-        else {
-                g.frame_count++;
-                if (g.frame_count > 10)
-                        g.frame_count = 0;
-        }
+	}
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	//Draw box.
@@ -426,6 +427,7 @@ void render()
 		glEnd();
 		glPopMatrix();
 	}
+	g.frame_count++;
 }
 
 
